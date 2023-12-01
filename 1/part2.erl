@@ -41,15 +41,11 @@ is_prefix(Line) ->
     L  -> {found, hd(L)}
   end.
 
-remove_prefix(Line, []) -> Line;
-remove_prefix(Line, [H]) when (H == $o orelse H == $t orelse H == $e) -> Line;
-remove_prefix([_|T1], [_|T2]) -> remove_prefix(T1, T2).
-
 digitize([], Accm) -> Accm;
 digitize([_ | T] = Line, Accm) ->
   case is_prefix(Line) of
     {found, Prefix} ->
-      digitize(remove_prefix(Line, Prefix), [maps:get(Prefix, digit_map()) | Accm]);
+      digitize(T, [maps:get(Prefix, digit_map()) | Accm]);
     _ ->
       digitize(T, Accm)
   end.
