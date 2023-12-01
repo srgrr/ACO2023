@@ -42,6 +42,7 @@ is_prefix(Line) ->
   end.
 
 remove_prefix(Line, []) -> Line;
+remove_prefix(Line, [H]) when (H == $o orelse H == $t orelse H == $e) -> Line;
 remove_prefix([_|T1], [_|T2]) -> remove_prefix(T1, T2).
 
 digitize([], Accm) -> Accm;
@@ -56,6 +57,7 @@ digitize([_ | T] = Line, Accm) ->
 process_line(Line) ->
   D = lists:reverse(digitize(Line, [])),
   [First, Last] = [hd(D), lists:last(D)],
+  io:format("~p = ~w~n",[Line, 10 * First + Last]),
   10 * First + Last.
 
 solve_for_input(Lines) ->
