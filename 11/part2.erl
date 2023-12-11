@@ -1,49 +1,43 @@
 -module(part2).
 -export([main/0]).
 
-process_input_row(Acc, [C], _, _) when C == $\n -> Acc;
+process_input_row(Acc, [C], _, ColId) when C == $\n -> {Acc, ColId};
 process_input_row(Acc, [H | T], RowId, ColId) ->
-  process_input_row(maps:put({RowId, ColId}, H, Acc), T, RowId, ColId + 1).
+  case H == $# of
+    true -> process_input_row([{RowId, ColId} | Acc], T, RowId, ColId + 1);
+    _ -> process_input_row(Acc, T, RowId, ColId + 1)
+  end.
 
 read_input_matrix(Acc, RowId) ->
   case io:get_line("") of
-    eof -> Acc;
-    Line -> read_input_matrix(process_input_row(Acc, Line, RowId, 0), RowId + 1)
+    eof -> {Acc, RowId, 0};
+    Line ->
+      {RowList, NumCols} = process_input_row(Acc, Line, RowId, 0),
+      {FinalList, NumRows, _} = read_input_matrix(RowList, RowId + 1),
+      {FinalList, NumRows, NumCols}
   end.
 
-
-get_points_row(_, _, _, _, MaxCol, _, ColId, Acc) when ColId > MaxCol -> Acc;
-get_points_row(Matrix, EmptyRows, EmptyCols, MaxRow, MaxCol, RowId, ColId, Acc) ->
-  case maps:get({RowId, ColId}, Matrix) of
-    $# ->
-      I = RowId + 999999 * length([X || X <- EmptyRows, X < RowId]),
-      J = ColId + 999999 * length([X || X <- EmptyCols, X < ColId]),
-      NewMap = sets:add_element({I, J}, Acc),
-      get_points_row(Matrix, EmptyRows, EmptyCols, MaxRow, MaxCol, RowId, ColId + 1, NewMap);
-    _ ->
-      get_points_row(Matrix, EmptyRows, EmptyCols, MaxRow, MaxCol, RowId, ColId + 1, Acc)
-  end.
-  
-
-get_points(_, _, _, MaxRow, _, RowId, Acc) when RowId > MaxRow -> Acc;
-get_points(Matrix, EmptyRows, EmptyCols, MaxRow, MaxCol, RowId, Acc) ->
-  get_points(Matrix, EmptyRows, EmptyCols, MaxRow, MaxCol, RowId + 1,
-    get_points_row(Matrix, EmptyRows, EmptyCols, MaxRow, MaxCol, RowId, 0, Acc)
-  ).
+get_shifted_points(Matrix, EmptyRows, EmptyCols) ->
+  [
+    {
+      I + 999999 * length([X || X <- EmptyRows, I > X]),
+      J + 999999 * length([X || X <- EmptyCols, J > X])}
+      || {I, J} <- Matrix
+  ].
 
 manhattan({Ai, Aj}, {Bi, Bj}) -> abs(Ai - Bi) + abs(Aj - Bj).
 
 solve() ->
-  InputMatrix = read_input_matrix(maps:new(), 0),
-  {MaxRow, MaxCol} = lists:foldl(fun erlang:max/2, {-1, -1}, maps:keys(InputMatrix)),
+  {InputMatrix, NumRows, NumCols} = read_input_matrix([], 0),
+  MatrixSet = sets:from_list(InputMatrix),
+  Contained = fun _(C) -> sets:is_element(C, MatrixSet) end,
   EmptyRows =
-    [I || I <- lists:seq(0, MaxRow),
-                lists:all(fun _(J) -> maps:get({I, J}, InputMatrix) == $. end, lists:seq(0, MaxCol))],
+    [I || I <- lists:seq(0, NumRows - 1),
+     not lists:any(fun _(J) -> Contained({I, J}) end, lists:seq(0, NumCols - 1))],
   EmptyCols =
-    [J || J <- lists:seq(0, MaxCol),
-                lists:all(fun _(I) -> maps:get({I, J}, InputMatrix) == $. end, lists:seq(0, MaxRow))],
-  io:format("~p ~p~n", [EmptyRows, EmptyCols]),
-  Points = sets:to_list(get_points(InputMatrix, EmptyRows, EmptyCols, MaxRow, MaxCol, 0, sets:new())),
+    [J || J <- lists:seq(0, NumCols - 1),
+      not lists:any(fun _(I) -> Contained({I, J}) end, lists:seq(0, NumRows - 1))],
+  Points = get_shifted_points(InputMatrix, EmptyRows, EmptyCols),
   AllDists =
     [manhattan(P, Q) || P <- Points, Q <- Points, P < Q],
   lists:foldl(fun _(A, B) -> A + B end, 0, AllDists).
