@@ -27,8 +27,6 @@ get_shifted_points(Matrix, EmptyRows, EmptyCols) ->
       || {I, J} <- Matrix
   ].
 
-manhattan({Ai, Aj}, {Bi, Bj}) -> abs(Ai - Bi) + abs(Aj - Bj).
-
 solve() ->
   {InputMatrix, NumRows, NumCols} = read_input_matrix([], 0),
   MatrixSet = sets:from_list(InputMatrix),
@@ -40,8 +38,8 @@ solve() ->
     [J || J <- lists:seq(0, NumCols - 1),
       not lists:any(fun _(I) -> Contained({I, J}) end, lists:seq(0, NumRows - 1))],
   Points = get_shifted_points(InputMatrix, EmptyRows, EmptyCols),
-  AllDists =
-    [manhattan(P, Q) || P <- Points, Q <- Points, P < Q],
+  Manhattan = fun _({Ai, Aj}, {Bi, Bj}) -> abs(Ai - Bi) + abs(Aj - Bj) end,
+  AllDists = [Manhattan(P, Q) || P <- Points, Q <- Points, P < Q],
   lists:foldl(fun _(A, B) -> A + B end, 0, AllDists).
 
 main() ->
