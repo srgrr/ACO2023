@@ -3,10 +3,12 @@
 
 process_input_row(Acc, [C], _, ColId) when C == $\n -> {Acc, ColId};
 process_input_row(Acc, [H | T], RowId, ColId) ->
-  case H == $# of
-    true -> process_input_row([{RowId, ColId} | Acc], T, RowId, ColId + 1);
-    _ -> process_input_row(Acc, T, RowId, ColId + 1)
-  end.
+  NewAcc =
+    case H == $# of
+      true -> [{RowId, ColId} | Acc];
+      _ -> Acc
+    end,
+  process_input_row(NewAcc, T, RowId, ColId + 1).
 
 read_input_matrix(Acc, RowId) ->
   case io:get_line("") of
